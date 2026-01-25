@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+
+  // URLs and Links
+  productionUrl   String?
+  stagingUrl      String?
+  vercelProjectUrl String?
+  githubRepoUrl   String?
+
+  // Documentation
+  readme          String?
+  architecture    String?
+  notes           String?
+
+  // Tech Stack
+  techStack       String?   // JSON array of technologies
+
+  // Status
+  status          String    @default("active") // active, archived, in-development
+
+  // Credentials (encrypted)
+  credentials     Credential[]
+
+  // Environment Variables
+  envVariables    EnvVariable[]
+
+  // Tags for organization
+  tags            String?   // JSON array of tags
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Credential {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  label       String   // e.g., "Admin Login", "Database", "API Key"
+  username    String?  // encrypted
+  password    String?  // encrypted
+  url         String?
+  notes       String?  // encrypted
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EnvVariable {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  environment String   // production, staging, development
+  key         String
+  value       String   // encrypted
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AppSettings {
+  id              String   @id @default("settings")
+  appPasswordHash String?  // hashed password to access the app
+  encryptionKey   String?  // stored encrypted, used for credentials
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
