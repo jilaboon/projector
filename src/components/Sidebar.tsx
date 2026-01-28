@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ export default function Sidebar({ onNewProject }: SidebarProps) {
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/projects', icon: FolderKanban, label: 'All Projects' },
+    { href: '/services', icon: CreditCard, label: 'Services' },
   ];
 
   return (

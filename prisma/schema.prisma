@@ -78,3 +78,30 @@ model AppSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model Service {
+  id              String   @id @default(cuid())
+  name            String   // e.g., "Vercel", "Supabase", "Claude Code"
+  category        String?  // e.g., "Hosting", "Database", "AI", "Domain", "Email"
+
+  // Pricing
+  price           Float    // Amount per billing cycle
+  currency        String   @default("USD") // USD, EUR, ILS, etc.
+  billingCycle    String   @default("monthly") // monthly, yearly, one-time
+
+  // Subscription details
+  autoRenew       Boolean  @default(true)
+  startDate       DateTime?
+  nextBillingDate DateTime?
+
+  // Status
+  status          String   @default("active") // active, cancelled, paused, trial
+
+  // Additional info
+  url             String?  // Service URL/dashboard
+  accountEmail    String?  // Account used for this service
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
