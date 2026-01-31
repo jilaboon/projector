@@ -35,6 +35,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         currency: data.currency,
         billingCycle: data.billingCycle,
         autoRenew: data.autoRenew,
+        remindBeforeRenew: data.remindBeforeRenew,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         nextBillingDate: data.nextBillingDate ? new Date(data.nextBillingDate) : undefined,
         status: data.status,

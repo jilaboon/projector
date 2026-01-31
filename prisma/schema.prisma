@@ -90,9 +90,10 @@ model Service {
   billingCycle    String   @default("monthly") // monthly, yearly, one-time
 
   // Subscription details
-  autoRenew       Boolean  @default(true)
-  startDate       DateTime?
-  nextBillingDate DateTime?
+  autoRenew         Boolean  @default(true)
+  remindBeforeRenew Boolean  @default(false) // Highlight in red as reminder
+  startDate         DateTime?
+  nextBillingDate   DateTime?
 
   // Status
   status          String   @default("active") // active, cancelled, paused, trial

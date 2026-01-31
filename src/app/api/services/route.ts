@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
         currency: data.currency || 'USD',
         billingCycle: data.billingCycle || 'monthly',
         autoRenew: data.autoRenew ?? true,
+        remindBeforeRenew: data.remindBeforeRenew ?? false,
         startDate: data.startDate ? new Date(data.startDate) : null,
         nextBillingDate: data.nextBillingDate ? new Date(data.nextBillingDate) : null,
         status: data.status || 'active',

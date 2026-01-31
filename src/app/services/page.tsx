@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Pencil,
@@ -9,6 +10,8 @@ import {
   RefreshCw,
   X,
   DollarSign,
+  ArrowLeft,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +23,7 @@ interface Service {
   currency: string;
   billingCycle: string;
   autoRenew: boolean;
+  remindBeforeRenew: boolean;
   startDate: string | null;
   nextBillingDate: string | null;
   status: string;
@@ -57,6 +61,7 @@ export default function ServicesPage() {
     currency: 'USD',
     billingCycle: 'monthly',
     autoRenew: true,
+    remindBeforeRenew: false,
     startDate: '',
     nextBillingDate: '',
     status: 'active',
@@ -112,6 +117,7 @@ export default function ServicesPage() {
       currency: 'USD',
       billingCycle: 'monthly',
       autoRenew: true,
+      remindBeforeRenew: false,
       startDate: '',
       nextBillingDate: '',
       status: 'active',
@@ -131,6 +137,7 @@ export default function ServicesPage() {
       currency: service.currency,
       billingCycle: service.billingCycle,
       autoRenew: service.autoRenew,
+      remindBeforeRenew: service.remindBeforeRenew,
       startDate: service.startDate ? service.startDate.split('T')[0] : '',
       nextBillingDate: service.nextBillingDate ? service.nextBillingDate.split('T')[0] : '',
       status: service.status,
@@ -208,6 +215,13 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-4 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
           <h1 className="text-3xl font-bold text-white">Services & Subscriptions</h1>
           <p className="text-zinc-400 mt-1">Track your paid services and monthly spending</p>
         </div>
@@ -274,10 +288,22 @@ export default function ServicesPage() {
             </thead>
             <tbody>
               {activeServices.map((service) => (
-                <tr key={service.id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
+                <tr
+                  key={service.id}
+                  className={cn(
+                    "border-b border-zinc-800 hover:bg-zinc-800/50",
+                    service.autoRenew && service.remindBeforeRenew && "bg-red-500/10 border-l-4 border-l-red-500"
+                  )}
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">{service.name}</span>
+                      {service.autoRenew && service.remindBeforeRenew && (
+                        <Bell size={16} className="text-red-400" />
+                      )}
+                      <span className={cn(
+                        "font-medium",
+                        service.autoRenew && service.remindBeforeRenew ? "text-red-400" : "text-white"
+                      )}>{service.name}</span>
                       {service.url && (
                         <a
                           href={service.url}
@@ -524,7 +550,7 @@ export default function ServicesPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex items-center">
+                <div className="flex flex-col gap-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -534,6 +560,17 @@ export default function ServicesPage() {
                     />
                     <span className="text-sm text-zinc-300">Auto-Renew</span>
                   </label>
+                  {formData.autoRenew && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.remindBeforeRenew}
+                        onChange={(e) => setFormData({ ...formData, remindBeforeRenew: e.target.checked })}
+                        className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-red-500 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-red-400">Remind before renew</span>
+                    </label>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1">Start Date</label>
