@@ -79,6 +79,36 @@ model AppSettings {
   updatedAt       DateTime @updatedAt
 }
 
+model Proposal {
+  id              String   @id @default(cuid())
+
+  // Customer info
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  customerCompany String?
+
+  // Proposal details
+  title           String
+  requirements    String   // Free text - main requirements/description
+  notes           String?  // Additional notes
+
+  // Pricing (optional)
+  estimatedPrice  Float?
+  currency        String   @default("ILS")
+
+  // Status
+  status          String   @default("draft") // draft, sent, accepted, rejected, in-progress, completed
+
+  // Dates
+  sentAt          DateTime?
+  respondedAt     DateTime?
+  deadline        DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model Service {
   id              String   @id @default(cuid())
   name            String   // e.g., "Vercel", "Supabase", "Claude Code"
