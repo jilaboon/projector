@@ -3,12 +3,19 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TaskCard from '@/components/TaskCard';
-import { CheckSquare, Filter, AlertTriangle, Clock, Loader2 } from 'lucide-react';
+import Modal from '@/components/Modal';
+import TaskForm, { TaskFormData } from '@/components/TaskForm';
+import { CheckSquare, Filter, AlertTriangle, Clock, Loader2, Plus } from 'lucide-react';
 import { Task, TaskStatus, TaskPriority, TASK_STATUSES, TASK_PRIORITIES, STATUS_CONFIG, PRIORITY_CONFIG } from '@/lib/types';
 import LoadingBar from '@/components/LoadingBar';
 
 interface GroupedTasks {
   [projectName: string]: Task[];
+}
+
+interface SimpleProject {
+  id: string;
+  name: string;
 }
 
 export default function TasksPage() {
@@ -17,6 +24,10 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [projects, setProjects] = useState<SimpleProject[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const minDelay = new Promise(r => setTimeout(r, 600));
@@ -33,6 +44,44 @@ export default function TasksPage() {
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch('/api/projects');
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  const handleOpenNewTaskModal = () => {
+    fetchProjects();
+    setSelectedProjectId('');
+    setShowNewTaskModal(true);
+  };
+
+  const handleCreateTask = async (data: TaskFormData) => {
+    if (!selectedProjectId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setShowNewTaskModal(false);
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -93,6 +142,13 @@ export default function TasksPage() {
                 All active tasks across your projects
               </p>
             </div>
+            <button
+              onClick={handleOpenNewTaskModal}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <Plus size={20} />
+              New Task
+            </button>
           </div>
         </header>
 
@@ -237,6 +293,38 @@ export default function TasksPage() {
             </div>
           )}
         </div>
+        {/* New Task Modal */}
+        <Modal
+          isOpen={showNewTaskModal}
+          onClose={() => setShowNewTaskModal(false)}
+          title="New Task"
+          size="lg"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Project *
+              </label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a project...</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <TaskForm
+              onSubmit={handleCreateTask}
+              onCancel={() => setShowNewTaskModal(false)}
+              isLoading={saving}
+            />
+          </div>
+        </Modal>
       </main>
     </div>
   );
