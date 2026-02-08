@@ -19,6 +19,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { Task, STATUS_CONFIG, PRIORITY_CONFIG } from '@/lib/types';
+import LoadingBar from '@/components/LoadingBar';
 import { cn, formatDate, parseJsonArray } from '@/lib/utils';
 
 interface Project {
@@ -203,7 +204,7 @@ export default function Dashboard() {
       <div className="flex h-screen bg-zinc-950">
         <Sidebar onNewProject={() => setShowNewProjectModal(true)} />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-zinc-500">Loading dashboard...</div>
+          <LoadingBar />
         </main>
       </div>
     );

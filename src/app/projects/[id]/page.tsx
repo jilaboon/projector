@@ -34,6 +34,7 @@ import TaskList from '@/components/TaskList';
 import TaskForm from '@/components/TaskForm';
 import { parseJsonArray, cn } from '@/lib/utils';
 import { Task, TaskStatus, CreateTaskInput, UpdateTaskInput } from '@/lib/types';
+import LoadingBar from '@/components/LoadingBar';
 
 interface Credential {
   id: string;
@@ -362,7 +363,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div className="flex h-screen bg-zinc-950">
         <Sidebar onNewProject={() => router.push('/')} />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-zinc-500">Loading...</div>
+          <LoadingBar />
         </main>
       </div>
     );

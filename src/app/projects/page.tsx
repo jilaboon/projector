@@ -7,6 +7,7 @@ import Modal from '@/components/Modal';
 import ProjectForm from '@/components/ProjectForm';
 import { FolderKanban, Plus, Filter } from 'lucide-react';
 import { parseJsonArray } from '@/lib/utils';
+import LoadingBar from '@/components/LoadingBar';
 
 interface Project {
   id: string;
@@ -212,7 +213,7 @@ export default function ProjectsPage() {
           {/* Projects Grid */}
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-zinc-500">Loading projects...</div>
+              <LoadingBar />
             </div>
           ) : filteredProjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">

@@ -16,6 +16,7 @@ import {
   Calendar,
   DollarSign,
 } from 'lucide-react';
+import LoadingBar from '@/components/LoadingBar';
 
 interface Proposal {
   id: string;
@@ -241,8 +242,8 @@ export default function ProposalsPage() {
 
       {/* Proposals Table */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+        <div className="flex items-center justify-center py-12">
+          <LoadingBar />
         </div>
       ) : proposals.length === 0 ? (
         <div className="text-center py-12 bg-zinc-900 rounded-lg border border-zinc-800">

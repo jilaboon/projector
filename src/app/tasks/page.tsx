@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import TaskCard from '@/components/TaskCard';
 import { CheckSquare, Filter, AlertTriangle, Clock, Loader2 } from 'lucide-react';
 import { Task, TaskStatus, TaskPriority, TASK_STATUSES, TASK_PRIORITIES, STATUS_CONFIG, PRIORITY_CONFIG } from '@/lib/types';
+import LoadingBar from '@/components/LoadingBar';
 
 interface GroupedTasks {
   [projectName: string]: Task[];
@@ -190,7 +191,7 @@ export default function TasksPage() {
           {/* Tasks grouped by project */}
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 size={24} className="text-zinc-500 animate-spin" />
+              <LoadingBar />
             </div>
           ) : Object.keys(grouped).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
