@@ -15,8 +15,8 @@ export default function LoadingBar({ label }: { label?: string }) {
       {/* Track */}
       <div
         style={{
-          width: '320px',
-          height: '8px',
+          width: '640px',
+          height: '16px',
           backgroundColor: '#27272a',
           borderRadius: '9999px',
           overflow: 'hidden',
