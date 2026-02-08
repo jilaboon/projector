@@ -68,7 +68,8 @@ export default function ProposalsPage() {
   });
 
   useEffect(() => {
-    fetchProposals();
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchProposals(), minDelay]).finally(() => setLoading(false));
   }, []);
 
   const fetchProposals = async () => {
@@ -78,8 +79,6 @@ export default function ProposalsPage() {
       setProposals(data);
     } catch (error) {
       console.error('Error fetching proposals:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

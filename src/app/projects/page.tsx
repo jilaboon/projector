@@ -32,7 +32,8 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<string>('all');
 
   useEffect(() => {
-    fetchProjects();
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchProjects(), minDelay]).finally(() => setLoading(false));
   }, []);
 
   const fetchProjects = async () => {
@@ -42,8 +43,6 @@ export default function ProjectsPage() {
       setProjects(data);
     } catch (error) {
       console.error('Error fetching projects:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

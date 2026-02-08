@@ -72,7 +72,8 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([fetchProjects(), fetchTasks(), fetchServices(), fetchProposals()])
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchProjects(), fetchTasks(), fetchServices(), fetchProposals(), minDelay])
       .finally(() => setLoading(false));
   }, []);
 

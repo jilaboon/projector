@@ -19,7 +19,8 @@ export default function TasksPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchTasks();
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchTasks(), minDelay]).finally(() => setLoading(false));
   }, []);
 
   const fetchTasks = async () => {
@@ -32,8 +33,6 @@ export default function TasksPage() {
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

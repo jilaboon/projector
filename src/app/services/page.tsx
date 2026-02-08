@@ -72,7 +72,8 @@ export default function ServicesPage() {
   });
 
   useEffect(() => {
-    fetchServices();
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchServices(), minDelay]).finally(() => setLoading(false));
   }, []);
 
   async function fetchServices() {
@@ -82,8 +83,6 @@ export default function ServicesPage() {
       setServices(data);
     } catch (error) {
       console.error('Error fetching services:', error);
-    } finally {
-      setLoading(false);
     }
   }
 

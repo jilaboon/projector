@@ -102,10 +102,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [notesContent, setNotesContent] = useState('');
 
   useEffect(() => {
-    fetchProject();
-    fetchCredentials();
-    fetchEnvVariables();
-    fetchTasks();
+    const minDelay = new Promise(r => setTimeout(r, 600));
+    Promise.all([fetchProject(), fetchCredentials(), fetchEnvVariables(), fetchTasks(), minDelay])
+      .finally(() => setLoading(false));
   }, [id]);
 
   const fetchProject = async () => {
@@ -120,8 +119,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       }
     } catch (error) {
       console.error('Error fetching project:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
