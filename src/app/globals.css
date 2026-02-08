@@ -31,8 +31,8 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  z-index: 9999;
+  height: 4px;
+  z-index: 99999;
   pointer-events: none;
 }
 
@@ -42,11 +42,12 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316, #8b5cf6, #3b82f6);
-  background-size: 300% 100%;
-  animation: top-loader-gradient 1.5s linear infinite;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316, #ec4899, #8b5cf6, #3b82f6);
+  background-size: 400% 100%;
+  animation: top-loader-gradient 1.2s linear infinite;
   transform-origin: left;
-  transition: transform 0.2s ease-out, opacity 0.3s ease;
+  transition: transform 0.15s ease-out, opacity 0.4s ease;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5), 0 0 20px rgba(236, 72, 153, 0.3);
 }
 
 .top-loader-glow {
@@ -54,34 +55,33 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 8px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316, #8b5cf6, #3b82f6);
-  background-size: 300% 100%;
-  animation: top-loader-gradient 1.5s linear infinite;
+  height: 16px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f97316, #ec4899, #8b5cf6, #3b82f6);
+  background-size: 400% 100%;
+  animation: top-loader-gradient 1.2s linear infinite;
   transform-origin: left;
-  filter: blur(6px);
-  opacity: 0.6;
-  transition: transform 0.2s ease-out, opacity 0.3s ease;
+  filter: blur(10px);
+  transition: transform 0.15s ease-out, opacity 0.4s ease;
 }
 
 .top-loader-pulse {
   position: absolute;
-  top: -2px;
-  width: 80px;
-  height: 7px;
+  top: -4px;
+  width: 120px;
+  height: 12px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.8), transparent);
-  filter: blur(3px);
-  animation: top-loader-shimmer 0.8s ease-in-out infinite alternate;
+  background: radial-gradient(ellipse, rgba(236, 72, 153, 0.9), rgba(139, 92, 246, 0.4), transparent);
+  filter: blur(4px);
+  animation: top-loader-shimmer 0.6s ease-in-out infinite alternate;
   transform: translateX(-50%);
 }
 
 @keyframes top-loader-gradient {
   0% { background-position: 0% 50%; }
-  100% { background-position: 300% 50%; }
+  100% { background-position: 400% 50%; }
 }
 
 @keyframes top-loader-shimmer {
-  0% { opacity: 0.4; transform: translateX(-50%) scaleX(0.8); }
-  100% { opacity: 1; transform: translateX(-50%) scaleX(1.5); }
+  0% { opacity: 0.5; transform: translateX(-50%) scaleX(0.6); }
+  100% { opacity: 1; transform: translateX(-50%) scaleX(1.8); }
 }

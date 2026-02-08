@@ -1,93 +1,111 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
+
+// Global loader state outside React to avoid race conditions
+let loaderState = { loading: false, progress: 0, visible: false };
+let listeners: Array<() => void> = [];
+let progressTimer: ReturnType<typeof setInterval> | null = null;
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+let activeFetches = 0;
+let fetchPatched = false;
+
+function notify() {
+  loaderState = { ...loaderState };
+  listeners.forEach((l) => l());
+}
+
+function startLoading() {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+  loaderState.visible = true;
+  loaderState.loading = true;
+  loaderState.progress = 0;
+  notify();
+
+  if (progressTimer) clearInterval(progressTimer);
+  let p = 0;
+  progressTimer = setInterval(() => {
+    p += Math.random() * (p < 20 ? 18 : p < 50 ? 8 : p < 80 ? 3 : 0.5);
+    if (p > 92) p = 92;
+    loaderState.progress = p;
+    notify();
+  }, 60);
+}
+
+function completeLoading() {
+  if (progressTimer) {
+    clearInterval(progressTimer);
+    progressTimer = null;
+  }
+  loaderState.progress = 100;
+  notify();
+
+  setTimeout(() => {
+    loaderState.loading = false;
+    notify();
+    hideTimer = setTimeout(() => {
+      loaderState.visible = false;
+      loaderState.progress = 0;
+      notify();
+    }, 400);
+  }, 250);
+}
+
+// Patch fetch globally ONCE, immediately (not in useEffect)
+function patchFetch() {
+  if (fetchPatched || typeof window === 'undefined') return;
+  fetchPatched = true;
+  const originalFetch = window.fetch;
+
+  window.fetch = async function (...args: Parameters<typeof fetch>) {
+    const url =
+      typeof args[0] === 'string'
+        ? args[0]
+        : args[0] instanceof Request
+          ? args[0].url
+          : '';
+    const isApi = url.startsWith('/api/');
+
+    if (isApi) {
+      activeFetches++;
+      if (activeFetches === 1) startLoading();
+    }
+
+    try {
+      return await originalFetch.apply(this, args);
+    } finally {
+      if (isApi) {
+        activeFetches = Math.max(0, activeFetches - 1);
+        if (activeFetches === 0) completeLoading();
+      }
+    }
+  };
+}
+
+function subscribe(listener: () => void) {
+  listeners.push(listener);
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+  };
+}
+
+function getSnapshot() {
+  return loaderState;
+}
 
 export default function TopLoader() {
   const pathname = usePathname();
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevPathRef = useRef(pathname);
-  const activeFetches = useRef(0);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const startLoading = useCallback(() => {
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-    setVisible(true);
-    setLoading(true);
-    setProgress(0);
+  // Patch fetch on first render (synchronous, before effects)
+  patchFetch();
 
-    // Fast initial burst, then slow crawl
-    let p = 0;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      p += Math.random() * (p < 30 ? 15 : p < 60 ? 6 : p < 80 ? 2 : 0.5);
-      if (p > 92) p = 92;
-      setProgress(p);
-    }, 80);
-  }, []);
-
-  const completeLoading = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setProgress(100);
-    setTimeout(() => {
-      setLoading(false);
-      hideTimerRef.current = setTimeout(() => {
-        setVisible(false);
-        setProgress(0);
-      }, 300);
-    }, 200);
-  }, []);
-
-  // Intercept fetch to detect API calls
-  useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const url = typeof args[0] === 'string' ? args[0] : args[0] instanceof Request ? args[0].url : '';
-      const isApi = url.startsWith('/api/');
-
-      if (isApi) {
-        activeFetches.current++;
-        if (activeFetches.current === 1) startLoading();
-      }
-
-      try {
-        const res = await originalFetch(...args);
-        return res;
-      } finally {
-        if (isApi) {
-          activeFetches.current--;
-          if (activeFetches.current === 0) completeLoading();
-        }
-      }
-    };
-
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [startLoading, completeLoading]);
-
-  // Detect route changes
-  useEffect(() => {
-    if (pathname !== prevPathRef.current) {
-      prevPathRef.current = pathname;
-      // If no active fetches are running, flash a quick complete animation
-      if (activeFetches.current === 0) {
-        startLoading();
-        setTimeout(completeLoading, 300);
-      }
-    }
-  }, [pathname, startLoading, completeLoading]);
-
-  // Intercept link clicks for instant feedback
+  // Detect route changes via link clicks
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest('a');
@@ -97,33 +115,44 @@ export default function TopLoader() {
         startLoading();
       }
     };
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [pathname]);
 
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [pathname, startLoading]);
+  // Complete on pathname change
+  useEffect(() => {
+    if (pathname !== prevPathRef.current) {
+      prevPathRef.current = pathname;
+      if (activeFetches === 0 && !state.loading) {
+        // Quick flash for instant navigations
+        startLoading();
+        setTimeout(completeLoading, 400);
+      }
+    }
+  }, [pathname, state.loading]);
 
-  if (!visible) return null;
+  if (!state.visible) return null;
 
   return (
     <div className="top-loader-container" aria-hidden="true">
       <div
         className="top-loader-bar"
         style={{
-          transform: `scaleX(${progress / 100})`,
-          opacity: loading ? 1 : 0,
+          transform: `scaleX(${state.progress / 100})`,
+          opacity: state.loading ? 1 : 0,
         }}
       />
       <div
         className="top-loader-glow"
         style={{
-          transform: `scaleX(${progress / 100})`,
-          opacity: loading ? 1 : 0,
+          transform: `scaleX(${state.progress / 100})`,
+          opacity: state.loading ? 0.7 : 0,
         }}
       />
-      {loading && progress > 5 && (
+      {state.loading && state.progress > 3 && (
         <div
           className="top-loader-pulse"
-          style={{ left: `${progress}%` }}
+          style={{ left: `${state.progress}%` }}
         />
       )}
     </div>
