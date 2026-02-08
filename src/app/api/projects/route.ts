@@ -3,59 +3,73 @@ import { prisma } from '@/lib/db';
 
 export async function GET() {
   try {
-    const projects = await prisma.project.findMany({
-      include: {
-        credentials: true,
-        envVariables: true,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
-
     const now = new Date();
 
-    const projectsWithCounts = await Promise.all(
-      projects.map(async (project) => {
-        const [total, open, inProgress, blocked, overdue, lastActivity] =
-          await Promise.all([
-            prisma.task.count({ where: { projectId: project.id } }),
-            prisma.task.count({
-              where: { projectId: project.id, status: { not: 'DONE' } },
-            }),
-            prisma.task.count({
-              where: { projectId: project.id, status: 'IN_PROGRESS' },
-            }),
-            prisma.task.count({
-              where: { projectId: project.id, status: 'BLOCKED' },
-            }),
-            prisma.task.count({
-              where: {
-                projectId: project.id,
-                status: { not: 'DONE' },
-                dueDate: { lt: now },
-              },
-            }),
-            prisma.taskActivityLog.findFirst({
-              where: { task: { projectId: project.id } },
-              orderBy: { timestamp: 'desc' },
-              select: { timestamp: true },
-            }),
-          ]);
-
-        return {
-          ...project,
-          _taskCounts: {
-            total,
-            open,
-            inProgress,
-            blocked,
-            overdue,
-            lastActivityAt: lastActivity?.timestamp?.toISOString() ?? null,
+    // Single parallel fetch: projects + all task stats in 3 queries (not 120)
+    const [projects, taskCountsByProject, overdueCountsByProject, lastActivityByProject] =
+      await Promise.all([
+        prisma.project.findMany({
+          include: {
+            credentials: { select: { id: true } },
+            envVariables: { select: { id: true } },
           },
-        };
-      })
-    );
+          orderBy: { updatedAt: 'desc' },
+        }),
+        // One query: count tasks grouped by projectId and status
+        prisma.task.groupBy({
+          by: ['projectId', 'status'],
+          _count: { id: true },
+        }),
+        // One query: count overdue tasks grouped by projectId
+        prisma.task.groupBy({
+          by: ['projectId'],
+          where: { status: { not: 'DONE' }, dueDate: { lt: now } },
+          _count: { id: true },
+        }),
+        // One query: latest activity per project using raw SQL
+        prisma.$queryRaw<{ projectId: string; lastActivityAt: Date }[]>`
+          SELECT t."projectId", MAX(a."timestamp") as "lastActivityAt"
+          FROM "TaskActivityLog" a
+          JOIN "Task" t ON a."taskId" = t."id"
+          GROUP BY t."projectId"
+        `,
+      ]);
+
+    // Build lookup maps
+    const taskMap: Record<string, { total: number; open: number; inProgress: number; blocked: number }> = {};
+    for (const row of taskCountsByProject) {
+      if (!taskMap[row.projectId]) {
+        taskMap[row.projectId] = { total: 0, open: 0, inProgress: 0, blocked: 0 };
+      }
+      const count = row._count.id;
+      taskMap[row.projectId].total += count;
+      if (row.status !== 'DONE') taskMap[row.projectId].open += count;
+      if (row.status === 'IN_PROGRESS') taskMap[row.projectId].inProgress += count;
+      if (row.status === 'BLOCKED') taskMap[row.projectId].blocked += count;
+    }
+
+    const overdueMap: Record<string, number> = {};
+    for (const row of overdueCountsByProject) {
+      overdueMap[row.projectId] = row._count.id;
+    }
+
+    const activityMap: Record<string, string> = {};
+    for (const row of lastActivityByProject) {
+      activityMap[row.projectId] = row.lastActivityAt.toISOString();
+    }
+
+    // Merge into response
+    const projectsWithCounts = projects.map((project) => ({
+      ...project,
+      _taskCounts: {
+        total: taskMap[project.id]?.total ?? 0,
+        open: taskMap[project.id]?.open ?? 0,
+        inProgress: taskMap[project.id]?.inProgress ?? 0,
+        blocked: taskMap[project.id]?.blocked ?? 0,
+        overdue: overdueMap[project.id] ?? 0,
+        lastActivityAt: activityMap[project.id] ?? null,
+      },
+    }));
 
     return NextResponse.json(projectsWithCounts);
   } catch (error) {
