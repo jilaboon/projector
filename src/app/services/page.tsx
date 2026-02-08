@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import {
   Plus,
   Pencil,
@@ -10,12 +9,12 @@ import {
   RefreshCw,
   X,
   DollarSign,
-  ArrowLeft,
   Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LoadingBar from '@/components/LoadingBar';
 import { fetchWithCache, invalidateCache } from '@/lib/cache';
+import Sidebar from '@/components/Sidebar';
 
 interface Service {
   id: string;
@@ -202,39 +201,35 @@ export default function ServicesPage() {
   const activeServices = services.filter((s) => s.status === 'active');
   const otherServices = services.filter((s) => s.status !== 'active');
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingBar />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-3xl font-bold text-white">Services & Subscriptions</h1>
-          <p className="text-zinc-400 mt-1">Track your paid services and monthly spending</p>
-        </div>
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={20} />
-          Add Service
-        </button>
-      </div>
+    <div className="flex h-screen bg-zinc-950">
+      <Sidebar onNewProject={() => {}} />
 
-      {/* Summary Cards */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Services & Subscriptions</h1>
+              <p className="text-zinc-500 text-sm mt-1">Track your paid services and monthly spending</p>
+            </div>
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={20} />
+              Add Service
+            </button>
+          </div>
+        </header>
+
+        <div className="p-8">
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <LoadingBar />
+            </div>
+          ) : (
+            <>
+              {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
           <div className="flex items-center gap-3 mb-2">
@@ -462,8 +457,11 @@ export default function ServicesPage() {
           </div>
         )}
       </div>
+            </>
+          )}
+        </div>
 
-      {/* Add/Edit Modal */}
+        {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -637,6 +635,7 @@ export default function ServicesPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

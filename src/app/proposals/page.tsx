@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import Sidebar from '@/components/Sidebar';
 import {
-  ArrowLeft,
   Plus,
   Edit2,
   Trash2,
@@ -192,32 +191,28 @@ export default function ProposalsPage() {
     .reduce((sum, p) => sum + (p.estimatedPrice || 0), 0);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-4 transition-colors"
-        >
-          <ArrowLeft size={20} />
-          Back to Dashboard
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Proposals</h1>
-            <p className="text-zinc-400 mt-1">Track customer requirements and proposals</p>
-          </div>
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={20} />
-            New Proposal
-          </button>
-        </div>
-      </div>
+    <div className="flex h-screen bg-zinc-950">
+      <Sidebar onNewProject={() => {}} />
 
-      {/* Summary Cards */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Proposals</h1>
+              <p className="text-zinc-500 text-sm mt-1">Track customer requirements and proposals</p>
+            </div>
+            <button
+              onClick={() => openModal()}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={20} />
+              New Proposal
+            </button>
+          </div>
+        </header>
+
+        <div className="p-8">
+          {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
           <p className="text-zinc-400 text-sm">Total Proposals</p>
@@ -317,8 +312,9 @@ export default function ProposalsPage() {
           </div>
         </div>
       )}
+        </div>
 
-      {/* Modal */}
+        {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 rounded-lg border border-zinc-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -525,6 +521,7 @@ export default function ProposalsPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }
