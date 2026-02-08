@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LoadingBar from '@/components/LoadingBar';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface Service {
   id: string;
@@ -72,17 +73,16 @@ export default function ServicesPage() {
   });
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchServices(), minDelay]).finally(() => setLoading(false));
+    loadServices();
   }, []);
 
-  async function fetchServices() {
+  async function loadServices() {
     try {
-      const res = await fetch('/api/services');
-      const data = await res.json();
-      setServices(data);
+      setServices(await fetchWithCache<Service[]>('/api/services'));
     } catch (error) {
       console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -166,7 +166,7 @@ export default function ServicesPage() {
         });
       }
       setShowModal(false);
-      fetchServices();
+      invalidateCache('/api/services'); loadServices();
     } catch (error) {
       console.error('Error saving service:', error);
     }
@@ -177,7 +177,7 @@ export default function ServicesPage() {
 
     try {
       await fetch(`/api/services/${id}`, { method: 'DELETE' });
-      fetchServices();
+      invalidateCache('/api/services'); loadServices();
     } catch (error) {
       console.error('Error deleting service:', error);
     }

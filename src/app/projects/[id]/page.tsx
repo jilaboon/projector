@@ -35,6 +35,7 @@ import TaskForm from '@/components/TaskForm';
 import { parseJsonArray, cn } from '@/lib/utils';
 import { Task, TaskStatus, CreateTaskInput, UpdateTaskInput } from '@/lib/types';
 import LoadingBar from '@/components/LoadingBar';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface Credential {
   id: string;
@@ -102,60 +103,36 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [notesContent, setNotesContent] = useState('');
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchProject(), fetchCredentials(), fetchEnvVariables(), fetchTasks(), minDelay])
-      .finally(() => setLoading(false));
+    loadAll();
   }, [id]);
 
-  const fetchProject = async () => {
+  const loadAll = async () => {
     try {
-      const res = await fetch(`/api/projects/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProject(data);
-        setReadmeContent(data.readme || '');
-        setArchContent(data.architecture || '');
-        setNotesContent(data.notes || '');
-      }
+      const [proj, creds, envs, t] = await Promise.all([
+        fetchWithCache<Project>(`/api/projects/${id}`),
+        fetchWithCache<Credential[]>(`/api/projects/${id}/credentials`),
+        fetchWithCache<EnvVariable[]>(`/api/projects/${id}/env`),
+        fetchWithCache<Task[]>(`/api/projects/${id}/tasks`),
+      ]);
+      setProject(proj);
+      setReadmeContent(proj.readme || '');
+      setArchContent(proj.architecture || '');
+      setNotesContent(proj.notes || '');
+      setCredentials(creds);
+      setEnvVariables(envs);
+      setTasks(t);
     } catch (error) {
-      console.error('Error fetching project:', error);
+      console.error('Error loading project:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchCredentials = async () => {
-    try {
-      const res = await fetch(`/api/projects/${id}/credentials`);
-      if (res.ok) {
-        const data = await res.json();
-        setCredentials(data);
-      }
-    } catch (error) {
-      console.error('Error fetching credentials:', error);
-    }
-  };
-
-  const fetchEnvVariables = async () => {
-    try {
-      const res = await fetch(`/api/projects/${id}/env`);
-      if (res.ok) {
-        const data = await res.json();
-        setEnvVariables(data);
-      }
-    } catch (error) {
-      console.error('Error fetching env variables:', error);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch(`/api/projects/${id}/tasks`);
-      if (res.ok) {
-        const data = await res.json();
-        setTasks(data);
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    }
+  const invalidateProject = () => {
+    invalidateCache(`/api/projects/${id}`);
+    invalidateCache(`/api/projects/${id}/credentials`);
+    invalidateCache(`/api/projects/${id}/env`);
+    invalidateCache(`/api/projects/${id}/tasks`);
   };
 
   const handleCreateTask = async (data: CreateTaskInput) => {
@@ -168,7 +145,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       });
       if (res.ok) {
         setShowTaskModal(false);
-        fetchTasks();
+        invalidateCache(`/api/projects/${id}/tasks`); invalidateCache('/api/tasks'); loadAll();
       }
     } catch (error) {
       console.error('Error creating task:', error);
@@ -187,7 +164,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       if (res.ok) {
         setShowTaskModal(false);
         setEditingTask(null);
-        fetchTasks();
+        invalidateCache(`/api/projects/${id}/tasks`); invalidateCache('/api/tasks'); loadAll();
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -198,7 +175,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (!confirm('Are you sure you want to delete this task?')) return;
     try {
       await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-      fetchTasks();
+      invalidateCache(`/api/projects/${id}/tasks`); invalidateCache('/api/tasks'); loadAll();
     } catch (error) {
       console.error('Error deleting task:', error);
     }
@@ -233,7 +210,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       });
       if (res.ok) {
         setShowEditModal(false);
-        fetchProject();
+        invalidateCache(`/api/projects/${id}`); invalidateCache('/api/projects'); loadAll();
       }
     } catch (error) {
       console.error('Error updating project:', error);
@@ -256,7 +233,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         }),
       });
       if (res.ok) {
-        fetchProject();
+        invalidateCache(`/api/projects/${id}`); invalidateCache('/api/projects'); loadAll();
         if (field === 'readme') setEditingReadme(false);
         if (field === 'architecture') setEditingArch(false);
         if (field === 'notes') setEditingNotes(false);
@@ -287,7 +264,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       if (res.ok) {
         setShowCredentialModal(false);
         setEditingCredential(null);
-        fetchCredentials();
+        invalidateCache(`/api/projects/${id}/credentials`); loadAll();
       }
     } catch (error) {
       console.error('Error saving credential:', error);
@@ -302,7 +279,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       await fetch(`/api/projects/${id}/credentials?credentialId=${credentialId}`, {
         method: 'DELETE',
       });
-      fetchCredentials();
+      invalidateCache(`/api/projects/${id}/credentials`); loadAll();
     } catch (error) {
       console.error('Error deleting credential:', error);
     }
@@ -325,7 +302,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       if (res.ok) {
         setShowEnvModal(false);
         setEditingEnv(null);
-        fetchEnvVariables();
+        invalidateCache(`/api/projects/${id}/env`); loadAll();
       }
     } catch (error) {
       console.error('Error saving env variable:', error);
@@ -340,7 +317,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       await fetch(`/api/projects/${id}/env?envId=${envId}`, {
         method: 'DELETE',
       });
-      fetchEnvVariables();
+      invalidateCache(`/api/projects/${id}/env`); loadAll();
     } catch (error) {
       console.error('Error deleting env variable:', error);
     }

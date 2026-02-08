@@ -17,6 +17,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import LoadingBar from '@/components/LoadingBar';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface Proposal {
   id: string;
@@ -68,17 +69,16 @@ export default function ProposalsPage() {
   });
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchProposals(), minDelay]).finally(() => setLoading(false));
+    loadProposals();
   }, []);
 
-  const fetchProposals = async () => {
+  const loadProposals = async () => {
     try {
-      const res = await fetch('/api/proposals');
-      const data = await res.json();
-      setProposals(data);
+      setProposals(await fetchWithCache<Proposal[]>('/api/proposals'));
     } catch (error) {
       console.error('Error fetching proposals:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,7 +98,7 @@ export default function ProposalsPage() {
       });
 
       if (res.ok) {
-        fetchProposals();
+        invalidateCache('/api/proposals'); loadProposals();
         closeModal();
       }
     } catch (error) {
@@ -112,7 +112,7 @@ export default function ProposalsPage() {
     try {
       const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        fetchProposals();
+        invalidateCache('/api/proposals'); loadProposals();
       }
     } catch (error) {
       console.error('Error deleting proposal:', error);

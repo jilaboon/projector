@@ -21,6 +21,7 @@ import {
 import { Task, STATUS_CONFIG, PRIORITY_CONFIG } from '@/lib/types';
 import LoadingBar from '@/components/LoadingBar';
 import { cn, formatDate, parseJsonArray } from '@/lib/utils';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface Project {
   id: string;
@@ -72,34 +73,23 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchProjects(), fetchTasks(), fetchServices(), fetchProposals(), minDelay])
-      .finally(() => setLoading(false));
+    loadAll();
   }, []);
 
-  const fetchProjects = async () => {
+  const loadAll = async () => {
     try {
-      const res = await fetch('/api/projects');
-      if (res.ok) setProjects(await res.json());
+      const [p, t, s, pr] = await Promise.all([
+        fetchWithCache<Project[]>('/api/projects'),
+        fetchWithCache<Task[]>('/api/tasks'),
+        fetchWithCache<Service[]>('/api/services'),
+        fetchWithCache<Proposal[]>('/api/proposals'),
+      ]);
+      setProjects(p);
+      setTasks(t);
+      setServices(s);
+      setProposals(pr);
     } catch (e) { console.error(e); }
-  };
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch('/api/tasks');
-      if (res.ok) setTasks(await res.json());
-    } catch (e) { console.error(e); }
-  };
-  const fetchServices = async () => {
-    try {
-      const res = await fetch('/api/services');
-      if (res.ok) setServices(await res.json());
-    } catch (e) { console.error(e); }
-  };
-  const fetchProposals = async () => {
-    try {
-      const res = await fetch('/api/proposals');
-      if (res.ok) setProposals(await res.json());
-    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   const handleCreateProject = async (data: {
@@ -111,7 +101,7 @@ export default function Dashboard() {
       const res = await fetch('/api/projects', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
       });
-      if (res.ok) { setShowNewProjectModal(false); fetchProjects(); }
+      if (res.ok) { setShowNewProjectModal(false); invalidateCache('/api/projects'); loadAll(); }
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
   };

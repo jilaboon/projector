@@ -8,6 +8,7 @@ import ProjectForm from '@/components/ProjectForm';
 import { FolderKanban, Plus, Filter } from 'lucide-react';
 import { parseJsonArray } from '@/lib/utils';
 import LoadingBar from '@/components/LoadingBar';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface Project {
   id: string;
@@ -32,17 +33,16 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<string>('all');
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchProjects(), minDelay]).finally(() => setLoading(false));
+    loadProjects();
   }, []);
 
-  const fetchProjects = async () => {
+  const loadProjects = async () => {
     try {
-      const res = await fetch('/api/projects');
-      const data = await res.json();
-      setProjects(data);
+      setProjects(await fetchWithCache<Project[]>('/api/projects'));
     } catch (error) {
       console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,7 +66,7 @@ export default function ProjectsPage() {
       });
       if (res.ok) {
         setShowNewProjectModal(false);
-        fetchProjects();
+        invalidateCache('/api/projects'); loadProjects();
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -79,7 +79,7 @@ export default function ProjectsPage() {
     if (!confirm('Are you sure you want to delete this project?')) return;
     try {
       await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      fetchProjects();
+      invalidateCache('/api/projects'); loadProjects();
     } catch (error) {
       console.error('Error deleting project:', error);
     }
@@ -99,7 +99,7 @@ export default function ProjectsPage() {
           status: project.status === 'archived' ? 'active' : 'archived',
         }),
       });
-      fetchProjects();
+      invalidateCache('/api/projects'); loadProjects();
     } catch (error) {
       console.error('Error archiving project:', error);
     }

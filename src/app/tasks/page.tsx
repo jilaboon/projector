@@ -8,6 +8,7 @@ import TaskForm, { TaskFormData } from '@/components/TaskForm';
 import { CheckSquare, Filter, AlertTriangle, Clock, Loader2, Plus } from 'lucide-react';
 import { Task, TaskStatus, TaskPriority, TASK_STATUSES, TASK_PRIORITIES, STATUS_CONFIG, PRIORITY_CONFIG } from '@/lib/types';
 import LoadingBar from '@/components/LoadingBar';
+import { fetchWithCache, invalidateCache } from '@/lib/cache';
 
 interface GroupedTasks {
   [projectName: string]: Task[];
@@ -30,37 +31,31 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const minDelay = new Promise(r => setTimeout(r, 600));
-    Promise.all([fetchTasks(), minDelay]).finally(() => setLoading(false));
+    loadTasks();
   }, []);
 
-  const fetchTasks = async () => {
+  const loadTasks = async () => {
     try {
-      const res = await fetch('/api/tasks');
-      if (res.ok) {
-        const data: Task[] = await res.json();
-        // Filter out DONE tasks - this is the "Open Work" view
-        setTasks(data.filter((t) => t.status !== 'DONE'));
-      }
+      const data = await fetchWithCache<Task[]>('/api/tasks');
+      setTasks(data.filter((t) => t.status !== 'DONE'));
     } catch (error) {
       console.error('Error fetching tasks:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchProjects = async () => {
+  const loadProjects = async () => {
     try {
-      const res = await fetch('/api/projects');
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
-      }
+      const data = await fetchWithCache<{ id: string; name: string }[]>('/api/projects');
+      setProjects(data.map((p) => ({ id: p.id, name: p.name })));
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
   };
 
   const handleOpenNewTaskModal = () => {
-    fetchProjects();
+    loadProjects();
     setSelectedProjectId('');
     setShowNewTaskModal(true);
   };
@@ -76,7 +71,8 @@ export default function TasksPage() {
       });
       if (res.ok) {
         setShowNewTaskModal(false);
-        fetchTasks();
+        invalidateCache('/api/tasks');
+        loadTasks();
       }
     } catch (error) {
       console.error('Error creating task:', error);
@@ -122,7 +118,7 @@ export default function TasksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      fetchTasks();
+      invalidateCache('/api/tasks'); loadTasks();
     } catch (error) {
       console.error('Error updating task:', error);
     }
