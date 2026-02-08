@@ -5,7 +5,8 @@ import Sidebar from '@/components/Sidebar';
 import ProjectCard from '@/components/ProjectCard';
 import Modal from '@/components/Modal';
 import ProjectForm from '@/components/ProjectForm';
-import { FolderKanban, Plus, Filter } from 'lucide-react';
+import { FolderKanban, Plus, Filter, CheckSquare, Clock, AlertTriangle } from 'lucide-react';
+import { Task } from '@/lib/types';
 import { parseJsonArray } from '@/lib/utils';
 
 interface Project {
@@ -29,9 +30,11 @@ export default function Dashboard() {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<string>('all');
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     fetchProjects();
+    fetchAllTasks();
   }, []);
 
   const fetchProjects = async () => {
@@ -43,6 +46,18 @@ export default function Dashboard() {
       console.error('Error fetching projects:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllTasks = async () => {
+    try {
+      const res = await fetch('/api/tasks');
+      if (res.ok) {
+        const data: Task[] = await res.json();
+        setAllTasks(data);
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
     }
   };
 
@@ -117,6 +132,13 @@ export default function Dashboard() {
     archived: projects.filter((p) => p.status === 'archived').length,
   };
 
+  const taskStats = {
+    open: allTasks.filter((t) => t.status === 'BACKLOG' || t.status === 'TODO').length,
+    inProgress: allTasks.filter((t) => t.status === 'IN_PROGRESS').length,
+    blocked: allTasks.filter((t) => t.status === 'BLOCKED').length,
+    overdue: allTasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'DONE').length,
+  };
+
   return (
     <div className="flex h-screen bg-zinc-950">
       <Sidebar onNewProject={() => setShowNewProjectModal(true)} />
@@ -185,6 +207,54 @@ export default function Dashboard() {
                 <div>
                   <p className="text-2xl font-bold text-white">{stats.archived}</p>
                   <p className="text-xs text-zinc-500">Archived</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Task Stats */}
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <CheckSquare className="text-blue-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{taskStats.open}</p>
+                  <p className="text-xs text-zinc-500">Open Tasks</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 rounded-lg">
+                  <Clock className="text-yellow-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{taskStats.inProgress}</p>
+                  <p className="text-xs text-zinc-500">In Progress</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <AlertTriangle className="text-red-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{taskStats.blocked}</p>
+                  <p className="text-xs text-zinc-500">Blocked</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <Clock className="text-orange-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{taskStats.overdue}</p>
+                  <p className="text-xs text-zinc-500">Overdue</p>
                 </div>
               </div>
             </div>

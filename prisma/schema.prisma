@@ -36,6 +36,9 @@ model Project {
   // Environment Variables
   envVariables    EnvVariable[]
 
+  // Tasks
+  tasks           Task[]
+
   // Tags for organization
   tags            String?   // JSON array of tags
 
@@ -69,6 +72,45 @@ model EnvVariable {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title          String
+  description    String?  // markdown
+  status         String   @default("TODO")       // BACKLOG, TODO, IN_PROGRESS, BLOCKED, DONE
+  priority       String   @default("MEDIUM")      // LOW, MEDIUM, HIGH, CRITICAL
+  labels         String?  // JSON array of strings
+
+  dueDate        DateTime?
+  completedAt    DateTime?
+  estimateHours  Int?
+  blockedReason  String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  activityLog    TaskActivityLog[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+}
+
+model TaskActivityLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  eventType String   // TASK_CREATED, STATUS_CHANGED, DESCRIPTION_UPDATED, COMPLETED, REOPENED
+  payload   String?  // JSON - extra context (e.g., { from: "TODO", to: "IN_PROGRESS" })
+
+  timestamp DateTime @default(now())
+
+  @@index([taskId])
 }
 
 model AppSettings {

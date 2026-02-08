@@ -12,7 +12,52 @@ export async function GET() {
         updatedAt: 'desc',
       },
     });
-    return NextResponse.json(projects);
+
+    const now = new Date();
+
+    const projectsWithCounts = await Promise.all(
+      projects.map(async (project) => {
+        const [total, open, inProgress, blocked, overdue, lastActivity] =
+          await Promise.all([
+            prisma.task.count({ where: { projectId: project.id } }),
+            prisma.task.count({
+              where: { projectId: project.id, status: { not: 'DONE' } },
+            }),
+            prisma.task.count({
+              where: { projectId: project.id, status: 'IN_PROGRESS' },
+            }),
+            prisma.task.count({
+              where: { projectId: project.id, status: 'BLOCKED' },
+            }),
+            prisma.task.count({
+              where: {
+                projectId: project.id,
+                status: { not: 'DONE' },
+                dueDate: { lt: now },
+              },
+            }),
+            prisma.taskActivityLog.findFirst({
+              where: { task: { projectId: project.id } },
+              orderBy: { timestamp: 'desc' },
+              select: { timestamp: true },
+            }),
+          ]);
+
+        return {
+          ...project,
+          _taskCounts: {
+            total,
+            open,
+            inProgress,
+            blocked,
+            overdue,
+            lastActivityAt: lastActivity?.timestamp?.toISOString() ?? null,
+          },
+        };
+      })
+    );
+
+    return NextResponse.json(projectsWithCounts);
   } catch (error) {
     console.error('Error fetching projects:', error);
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });

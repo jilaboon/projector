@@ -19,6 +19,9 @@ import {
   Copy,
   Eye,
   EyeOff,
+  CheckSquare,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Modal from '@/components/Modal';
@@ -26,7 +29,11 @@ import ProjectForm from '@/components/ProjectForm';
 import CredentialCard from '@/components/CredentialCard';
 import CredentialForm from '@/components/CredentialForm';
 import EnvVariableForm from '@/components/EnvVariableForm';
+import TaskBoard from '@/components/TaskBoard';
+import TaskList from '@/components/TaskList';
+import TaskForm from '@/components/TaskForm';
 import { parseJsonArray, cn } from '@/lib/utils';
+import { Task, TaskStatus, CreateTaskInput, UpdateTaskInput } from '@/lib/types';
 
 interface Credential {
   id: string;
@@ -62,7 +69,7 @@ interface Project {
   updatedAt: string;
 }
 
-type Tab = 'overview' | 'readme' | 'architecture' | 'credentials' | 'env';
+type Tab = 'overview' | 'readme' | 'architecture' | 'credentials' | 'env' | 'tasks';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -79,6 +86,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [editingEnv, setEditingEnv] = useState<EnvVariable | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Task state
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskView, setTaskView] = useState<'board' | 'list'>('board');
+
   // Documentation editing state
   const [editingReadme, setEditingReadme] = useState(false);
   const [editingArch, setEditingArch] = useState(false);
@@ -91,6 +104,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     fetchProject();
     fetchCredentials();
     fetchEnvVariables();
+    fetchTasks();
   }, [id]);
 
   const fetchProject = async () => {
@@ -132,6 +146,68 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     } catch (error) {
       console.error('Error fetching env variables:', error);
     }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`/api/projects/${id}/tasks`);
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(data);
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
+
+  const handleCreateTask = async (data: CreateTaskInput) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setShowTaskModal(false);
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateTask = async (taskId: string, data: UpdateTaskInput) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setShowTaskModal(false);
+        setEditingTask(null);
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      fetchTasks();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
+    await handleUpdateTask(taskId, { status });
   };
 
   const handleUpdateProject = async (data: {
@@ -278,6 +354,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     { id: 'architecture', label: 'Architecture', icon: <Code size={16} /> },
     { id: 'credentials', label: 'Credentials', icon: <Key size={16} /> },
     { id: 'env', label: 'Environment', icon: <Server size={16} /> },
+    { id: 'tasks', label: 'Tasks', icon: <CheckSquare size={16} /> },
   ];
 
   if (loading) {
@@ -396,6 +473,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {tab.id === 'env' && envVariables.length > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 text-xs bg-zinc-800 rounded">
                     {envVariables.length}
+                  </span>
+                )}
+                {tab.id === 'tasks' && tasks.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-zinc-800 rounded">
+                    {tasks.length}
                   </span>
                 )}
               </button>
@@ -634,6 +716,77 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
 
+          {/* Tasks Tab */}
+          {activeTab === 'tasks' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-white">Tasks</h3>
+                  <div className="flex items-center bg-zinc-800 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setTaskView('board')}
+                      className={cn(
+                        'p-1.5 rounded transition-colors',
+                        taskView === 'board' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'
+                      )}
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                    <button
+                      onClick={() => setTaskView('list')}
+                      className={cn(
+                        'p-1.5 rounded transition-colors',
+                        taskView === 'list' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'
+                      )}
+                    >
+                      <List size={16} />
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowTaskModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  <Plus size={16} />
+                  New Task
+                </button>
+              </div>
+
+              {tasks.length === 0 ? (
+                <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 text-center">
+                  <CheckSquare size={32} className="text-zinc-700 mx-auto mb-3" />
+                  <p className="text-zinc-500">No tasks yet.</p>
+                  <p className="text-zinc-600 text-sm">
+                    Create tasks to track work for this project.
+                  </p>
+                </div>
+              ) : taskView === 'board' ? (
+                <TaskBoard
+                  tasks={tasks}
+                  onStatusChange={handleTaskStatusChange}
+                  onEdit={(task) => {
+                    setEditingTask(task);
+                    setShowTaskModal(true);
+                  }}
+                  onDelete={handleDeleteTask}
+                />
+              ) : (
+                <TaskList
+                  tasks={tasks}
+                  onStatusChange={handleTaskStatusChange}
+                  onEdit={(task) => {
+                    setEditingTask(task);
+                    setShowTaskModal(true);
+                  }}
+                  onDelete={handleDeleteTask}
+                />
+              )}
+            </div>
+          )}
+
           {/* Environment Variables Tab */}
           {activeTab === 'env' && (
             <div className="space-y-4">
@@ -763,6 +916,34 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           onCancel={() => {
             setShowEnvModal(false);
             setEditingEnv(null);
+          }}
+          isLoading={saving}
+        />
+      </Modal>
+
+      {/* Task Modal */}
+      <Modal
+        isOpen={showTaskModal}
+        onClose={() => {
+          setShowTaskModal(false);
+          setEditingTask(null);
+        }}
+        title={editingTask ? 'Edit Task' : 'New Task'}
+        size="lg"
+      >
+        <TaskForm
+          projectId={id}
+          initialData={editingTask || undefined}
+          onSubmit={(data) => {
+            if (editingTask) {
+              handleUpdateTask(editingTask.id, data);
+            } else {
+              handleCreateTask({ ...data, projectId: id });
+            }
+          }}
+          onCancel={() => {
+            setShowTaskModal(false);
+            setEditingTask(null);
           }}
           isLoading={saving}
         />

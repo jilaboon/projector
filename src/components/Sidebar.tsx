@@ -13,6 +13,7 @@ import {
   Search,
   CreditCard,
   FileText,
+  CheckSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ export default function Sidebar({ onNewProject }: SidebarProps) {
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/projects', icon: FolderKanban, label: 'All Projects' },
+    { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
     { href: '/services', icon: CreditCard, label: 'Services' },
     { href: '/proposals', icon: FileText, label: 'Proposals' },
   ];
