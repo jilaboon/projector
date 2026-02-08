@@ -360,7 +360,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div className="flex h-screen bg-zinc-950">
         <Sidebar onNewProject={() => router.push('/')} />
         <main className="flex-1 flex items-center justify-center">
-          <LoadingBar />
+          <LoadingBar label="Loading project..." />
         </main>
       </div>
     );

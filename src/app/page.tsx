@@ -205,7 +205,7 @@ export default function Dashboard() {
       <div className="flex h-screen bg-zinc-950">
         <Sidebar onNewProject={() => setShowNewProjectModal(true)} />
         <main className="flex-1 flex items-center justify-center">
-          <LoadingBar />
+          <LoadingBar label="Loading dashboard..." />
         </main>
       </div>
     );

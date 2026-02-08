@@ -212,7 +212,7 @@ export default function ProjectsPage() {
           {/* Projects Grid */}
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <LoadingBar />
+              <LoadingBar label="Loading projects..." />
             </div>
           ) : filteredProjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
