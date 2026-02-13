@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 import LoadingBar from '@/components/LoadingBar';
 import { fetchWithCache, invalidateCache } from '@/lib/cache';
 import { cn, parseJsonArray } from '@/lib/utils';
-import { Plus, Search, Pin, PinOff, Pencil, Trash2, BookOpen, Tag } from 'lucide-react';
+import { Plus, Search, Pin, PinOff, Pencil, Trash2, BookOpen, Tag, Copy, Check } from 'lucide-react';
 
 interface Note {
   id: string;
@@ -28,6 +28,7 @@ export default function NotesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -257,6 +258,17 @@ export default function NotesPage() {
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="text-white font-medium truncate pr-2">{note.title}</h3>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(note.content);
+                              setCopiedId(note.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-green-400 hover:bg-zinc-700 rounded"
+                            title="Copy content"
+                          >
+                            {copiedId === note.id ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                          </button>
                           <button
                             onClick={() => handleTogglePin(note)}
                             className="p-1 text-zinc-400 hover:text-yellow-400 hover:bg-zinc-700 rounded"
