@@ -10,10 +10,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Search,
   CreditCard,
   FileText,
   CheckSquare,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,7 @@ export default function Sidebar({ onNewProject }: SidebarProps) {
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/projects', icon: FolderKanban, label: 'All Projects' },
     { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
+    { href: '/notes', icon: BookOpen, label: 'Notes' },
     { href: '/services', icon: CreditCard, label: 'Services' },
     { href: '/proposals', icon: FileText, label: 'Proposals' },
   ];
@@ -60,22 +61,8 @@ export default function Sidebar({ onNewProject }: SidebarProps) {
         )}
       </div>
 
-      {/* Search */}
-      {!collapsed && (
-        <div className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-            <input
-              type="text"
-              placeholder="Search projects..."
-              className="w-full bg-zinc-800 text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      )}
-
       {/* New Project Button */}
-      <div className="px-4 mb-4">
+      <div className="px-4 py-4">
         <button
           onClick={onNewProject}
           className={cn(
